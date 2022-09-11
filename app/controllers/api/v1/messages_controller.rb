@@ -101,27 +101,6 @@ class Api::V1::MessagesController < ApplicationController
     messages = Message.all.where(room_id: params[:room_id]).order(created_at: :asc)
     return render json: messages, status: :ok
   end
-
-  def show
-    puts params
-    render json: {
-      message: "get one successfully!"
-    }, status: :created
-  end
-
-  def update
-    puts params
-    render json: {
-      message: "update successfully!"
-    }, status: :created
-  end
-
-  def destroy
-    puts params
-    render json: {
-      message: "delete successfully!"
-    }, status: :created
-  end
 end
 
 # custom exception
