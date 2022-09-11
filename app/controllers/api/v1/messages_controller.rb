@@ -1,14 +1,27 @@
 class Api::V1::MessagesController < ApplicationController
   def create
     # check param required, if one missing, auto render Bad Request
-    params.require([:text, :sender_id, :receiver_id, :room_flag])
+    params.require([:text, :sender_id, :room_flag])
 
     # check param permitted, if there's one params not permitted, render Bad Request
-    permitted = params.permit(:text, :sender_id, :receiver_id, :room_flag, :room_id)
+    permitted = params.permit(:text, :sender_id, :room_flag, :receiver_id, :room_id)
     unless permitted.permitted?
       return render json: {
         message: "The only parameter permitted is text, sender_id, " + 
-          "receiver_id, room_flag and room_id"
+          "room_flag, receiver_id and room_id"
+      }, status: :bad_request
+    end
+
+    # check room flag, 
+    # if it's private, receiver_id become required
+    # if it's not private, room_id become required
+    if params[:room_flag] == "private" and not params[:receiver_id]
+      return render json: {
+        message: "Params 'receiver_id' required"
+      }, status: :bad_request
+    elsif params[:room_flag] != "private" and not params[:room_id]
+      return render json: {
+        message: "Params 'room_id' required"
       }, status: :bad_request
     end
 
@@ -20,8 +33,7 @@ class Api::V1::MessagesController < ApplicationController
         # if flag private, create private room 
         # and participant first if room id not provided
         room_id = params[:room_id]
-        room_flag = params[:room_flag]
-        if room_flag == "private" and not room_id
+        if params[:room_flag] == "private" and not room_id
           room = Room.new({flag: "private"})
           unless room.save
             raise StandardError.new room.errors.full_messages
@@ -43,15 +55,9 @@ class Api::V1::MessagesController < ApplicationController
           unless participant_receiver.save
             raise StandardError.new participant_receiver.errors.full_messages
           end
-
-        # if other then private, room_id become required
-        else
-          unless room_id
-            raise BadRequestError.new "room_id required"
-          end
         end
 
-        # create private message
+        # create message
         message = Message.new({
           text: params[:text],
           room_id: room_id,
@@ -74,7 +80,7 @@ class Api::V1::MessagesController < ApplicationController
     end
 
     return render json: {
-      message: "created successfully!",
+      message: "Message created successfully!",
       data: message
     }, status: :created
   end
