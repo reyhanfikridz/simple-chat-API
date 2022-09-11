@@ -86,10 +86,20 @@ class Api::V1::MessagesController < ApplicationController
   end
 
   def index
-    puts params
-    render json: {
-      message: "get all successfully!"
-    }, status: :created
+    # check param required, if one missing, auto render Bad Request
+    params.require([:room_id])
+
+    # check param permitted, if there's one params not permitted, render Bad Request
+    permitted = params.permit(:room_id)
+    unless permitted.permitted?
+      return render json: {
+        message: "The only parameter permitted is room_id"
+      }, status: :bad_request
+    end
+
+    # get messages
+    messages = Message.all.where(room_id: params[:room_id]).order(created_at: :asc)
+    return render json: messages, status: :ok
   end
 
   def show
